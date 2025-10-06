@@ -5,14 +5,14 @@ import { useUser } from "../../api/hooks/useStudent";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const CreateStudentForm = () => {
+  const { getUsers, createUser, updateUser } = useUser();
+  const { data: users } = getUsers();
   const navigate = useNavigate();
-  const { createUser, updateUser } = useUser();
 
   const [f_name, setFName] = useState("");
   const [l_name, setLName] = useState("");
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const { state } = useLocation();
   const editingItem = state?.editingItem;
@@ -26,24 +26,31 @@ const CreateStudentForm = () => {
     }
   }, [editingItem]);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
 
     const student = { f_name, l_name, gender, address };
 
-    try {
-      if (editingItem) {
-        await updateUser.mutateAsync({ id: editingItem.id, ...student });
-      } else {
-        await createUser.mutateAsync(student);
-      }
+    const isDuplicate = users?.some(
+      (u: any) =>
+        u.f_name.toLowerCase() === f_name.toLowerCase().trim() &&
+        u.l_name.toLowerCase() === l_name.toLowerCase().trim() &&
+        u.id !== editingItem?.id 
+    );
 
-      navigate("/students");
-    } catch (error) {
-      console.error("Xatolik:", error);
-    } finally {
-      setLoading(false);
+    if (isDuplicate) {
+      alert("Bu ism va familiyadagi foydalanuvchi allaqachon mavjud!");
+      return;
+    }
+    if (editingItem) {
+      updateUser.mutate(
+        { id: editingItem.id, ...student },
+        {
+          onSuccess: () => navigate("/students"),
+        }
+      );
+    } else {
+      createUser.mutate(student);
     }
   };
 
@@ -52,7 +59,6 @@ const CreateStudentForm = () => {
       <Title className="mb-3">
         {editingItem ? "Update Student" : "Create Student"}
       </Title>
-
       <form onSubmit={handleSubmit}>
         <input
           type="text"
@@ -95,23 +101,22 @@ const CreateStudentForm = () => {
             </option>
           ))}
         </select>
-
         <button
-          disabled={loading}
-          className="w-full rounded-xl h-10 mb-3 bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-400"
+          className="w-full rounded-xl h-10 mb-3 bg-blue-500 text-white"
+          disabled={createUser.isPending || updateUser.isPending}
         >
-          {loading
+          {createUser.isPending || updateUser.isPending
             ? "Loading..."
             : editingItem
             ? "Update"
-            : "Create"}
+            : "Submit"}
         </button>
 
         {editingItem && (
           <button
             type="button"
             onClick={() => navigate("/students")}
-            className="w-full rounded-xl h-10 mb-3 bg-orange-400 text-white hover:bg-orange-500 transition"
+            className="w-full rounded-xl h-10 mb-3 bg-orange-300 text-white"
           >
             Cancel
           </button>

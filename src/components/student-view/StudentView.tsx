@@ -69,7 +69,7 @@ const StudentView: FC<IProps> = (props) => {
             </div>
             <div className="mt-4">
               <h3 className="font-bold">
-                {item.f_name}
+                {item.f_name}{" "}
                 {item.l_name}
               </h3>
               <p>{ item.address}</p>
